@@ -1,0 +1,8 @@
+target/*
+.DS_Store
+.settings/*
+/target/
+/bin/*
+/logs/*
+/archive/*
+/${sys:log.path}/*

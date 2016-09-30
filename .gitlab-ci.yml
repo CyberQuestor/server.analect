@@ -1,0 +1,4 @@
+dev:
+  script:
+    # runs maven clean and deploys latest jar to repository (as identified in pom)
+    - mvn clean deploy
