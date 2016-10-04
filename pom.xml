@@ -6,9 +6,34 @@
     <version>0.0.2</version>
     <relativePath>../haystack.service.layer</relativePath>
   </parent>
-  <groupId>com.hs.haystack</groupId>
   <artifactId>server.analect</artifactId>
-  <version>0.0.2</version>
   <name>analect</name>
   <description>A data extraction, processing and anatomization layer representing data sub-system</description>
+  <dependencies>
+  	<dependency>
+  		<groupId>uk.ac.gate</groupId>
+  		<artifactId>gate-core</artifactId>
+  		<version>8.2</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.apache.tika</groupId>
+  		<artifactId>tika-core</artifactId>
+  		<version>1.13</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.apache.tika</groupId>
+  		<artifactId>tika-parsers</artifactId>
+  		<version>1.13</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>com.hs.haystack</groupId>
+  		<artifactId>server.model</artifactId>
+  		<version>0.0.2</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>com.hs.haystack</groupId>
+  		<artifactId>server.utilities</artifactId>
+  		<version>0.0.2</version>
+  	</dependency>
+  </dependencies>
 </project>
