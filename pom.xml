@@ -7,7 +7,7 @@
     <relativePath>../haystack.service.layer</relativePath>
   </parent>
   <artifactId>server.analect</artifactId>
-  <name>analect</name>
+  <name>server.analect</name>
   <description>A data extraction, processing and anatomization layer representing data sub-system</description>
   <dependencies>
   	<dependency>
