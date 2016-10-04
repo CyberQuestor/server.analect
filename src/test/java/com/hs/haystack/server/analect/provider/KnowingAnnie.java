@@ -28,7 +28,7 @@ public class KnowingAnnie {
 		    Out.prln("Initialising processing engine...");
 
 		    Gate.setGateHome(getFileFromURL("gate"));
-		    // load the ANNIE application from the saved state in plugins/ANNIE
+		    
 		    File gateHome = Gate.getGateHome();
 		    Gate.setUserConfigFile(new File(gateHome, "user-gate.xml")); 
 		    
@@ -37,9 +37,7 @@ public class KnowingAnnie {
 		    File pluginsHome = Gate.getPluginsHome();
 		    
 		    
-		    //File anniePlugin = new File(pluginsHome, "ANNIE");
-		    //TODO: Change to relative path
-		    //File annieGapp = new File(anniePlugin, "C:\\Users\\antonydeepak\\Documents\\workspace\\Programming_Workspace\\project_workspace\\ResumeParser\\ResumeParser_git\\ResumeParser\\GATEFiles\\ANNIEResumeParser.gapp");
+
 		    File annieGapp = new File(gateHome, "ANNIEResumeParser.gapp");
 		    Gate.init();
 		 // load plugins, for example... 
