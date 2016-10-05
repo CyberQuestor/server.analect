@@ -54,8 +54,9 @@ import gate.util.persistence.PersistenceManager;
 public class Chronicle implements Vitae {
 
 	private static Logger logger = LogFabricator.instance.spawnLogHabit(Chronicle.class);
+	private static boolean gateInitiated = false;
 
-	private CorpusController annieController;
+	private static CorpusController annieController;
 
 	@Override
 	public File extractEnrichedContent(FileProperties recordToProcess) {
@@ -150,24 +151,38 @@ public class Chronicle implements Vitae {
 	}
 
 	@Override
-	public void initializeNLPEngine() {
-		logger.info("Initialising Gate");
-		Gate.setGateHome(getFileFromURL("gate"));
-		File gateHome = Gate.getGateHome();
-		Gate.setUserConfigFile(new File(gateHome, "user-gate.xml"));
-		Gate.setPluginsHome(getFileFromURL("gate/plugins"));
-		try {
-			Gate.init();
-			Gate.getCreoleRegister()
-					.registerDirectories(this.getClass().getClassLoader().getResource("gate/plugins/ANNIE"));
-			logger.info("Gate initialised");
+	public void initializeNLPEngine(String path) {
+		if (!gateInitiated && Gate.getGateHome() == null) {
+			logger.info("Initialising Gate");
+			if(path != null && !path.isEmpty()){
+				path = path + "/gate";
+			} else {
+				path = "gate";
+			}
+			
+			try {
+				Gate.setGateHome(new File(path));
+				File gateHome = Gate.getGateHome();
+				Gate.setUserConfigFile(new File(gateHome, "user-gate.xml"));
+				
+				path = path + "/plugins";
+				Gate.setPluginsHome(new File(path));
+				
+				Gate.init();
+				path = path + "/ANNIE";
+				Gate.getCreoleRegister()
+						.registerDirectories(new File(path).toURI().toURL());
+				logger.info("Gate initialised");
 
-			// initialise ANNIE (this may take several minutes)
-			logger.info("Initialising Annie");
-			this.initAnnie();
-			logger.info("Annie initialised");
-		} catch (GateException | IOException e) {
-			throw new NLPEngineRuntimeException();
+				// initialise ANNIE (this may take several minutes)
+				logger.info("Initialising Annie");
+				this.initAnnie();
+				logger.info("Annie initialised");
+				
+				gateInitiated = true;
+			} catch (GateException | IOException e) {
+				throw new NLPEngineRuntimeException();
+			}
 		}
 	}
 

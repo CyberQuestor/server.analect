@@ -8,6 +8,7 @@ import java.util.Map;
 
 import com.hs.haystack.models.common.error.runtime.analect.AnalectFabricationRuntimeException;
 import com.hs.haystack.server.analect.interact.Vitae;
+import com.hs.haystack.server.analect.provider.Chronicle;
 import com.hs.haystack.utilities.fabricator.ObjectFabricator;
 
 /**
@@ -17,7 +18,7 @@ public class Excerpt {
 	private static Map<Class<?>, ObjectFabricator<?>> warehouse = new HashMap<>();
 
 	static {
-		warehouse.put(Vitae.class, new ObjectFabricator<>(Vitae.class));
+		warehouse.put(Vitae.class, new ObjectFabricator<>(Chronicle.class));
 	}
 
 	@SuppressWarnings("unchecked")

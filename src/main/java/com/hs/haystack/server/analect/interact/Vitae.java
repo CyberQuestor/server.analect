@@ -24,8 +24,9 @@ public interface Vitae {
 	
 	/**
 	 * Help instantiate natural language processing engine
+	 * @param path is the location to navigate
 	 */
-	public void initializeNLPEngine();
+	public void initializeNLPEngine(String path);
 	
 	/**
 	 * Analyse incoming profile information
