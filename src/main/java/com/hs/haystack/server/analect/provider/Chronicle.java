@@ -33,6 +33,7 @@ import com.hs.haystack.models.common.error.runtime.analect.NLPEngineRuntimeExcep
 import com.hs.haystack.models.common.file.FileProperties;
 import com.hs.haystack.server.analect.interact.Vitae;
 import com.hs.haystack.utilities.fabricator.LogFabricator;
+import com.hs.haystack.utilities.interpreter.repose.PropertyAccessor;
 
 import gate.Annotation;
 import gate.AnnotationSet;
@@ -57,6 +58,7 @@ public class Chronicle implements Vitae {
 	private static boolean gateInitiated = false;
 
 	private static CorpusController annieController;
+	private String OUTPUT_FILE_NAME;
 
 	@Override
 	public File extractEnrichedContent(FileProperties recordToProcess) {
@@ -74,7 +76,7 @@ public class Chronicle implements Vitae {
 			logger.info("Input format of the file " + recordToProcess.getFileName() + " is not supported.");
 			return null;
 		}
-		String OUTPUT_FILE_NAME = FilenameUtils.removeExtension(recordToProcess.getFileName()) + outputFileFormat;
+		OUTPUT_FILE_NAME = FilenameUtils.removeExtension(recordToProcess.getFileName()) + outputFileFormat;
 
 		// handle content
 		ContentHandler handler = new ToXMLContentHandler();
@@ -84,11 +86,18 @@ public class Chronicle implements Vitae {
 		Metadata metadata = new Metadata();
 		try {
 			parser.parse(stream, handler, metadata);
-			FileWriter htmlFileWriter = new FileWriter(OUTPUT_FILE_NAME);
+			File toProcess = new File(PropertyAccessor.CONNECTION.getProperties().getProperty("nlp.tmp.path"),
+					OUTPUT_FILE_NAME);
+
+			// if file doesnt exists, then create it
+			if (!toProcess.exists()) {
+				toProcess.createNewFile();
+			}
+			FileWriter htmlFileWriter = new FileWriter(toProcess);
 			htmlFileWriter.write(handler.toString());
 			htmlFileWriter.flush();
 			htmlFileWriter.close();
-			return new File(OUTPUT_FILE_NAME);
+			return toProcess;
 		} catch (IOException | SAXException | TikaException e) {
 			throw new ContentEnrichmentRuntimeException();
 		} finally {
@@ -154,31 +163,30 @@ public class Chronicle implements Vitae {
 	public void initializeNLPEngine(String path) {
 		if (!gateInitiated && Gate.getGateHome() == null) {
 			logger.info("Initialising Gate");
-			if(path != null && !path.isEmpty()){
+			if (path != null && !path.isEmpty()) {
 				path = path + "/gate";
 			} else {
 				path = "gate";
 			}
-			
+
 			try {
 				Gate.setGateHome(new File(path));
 				File gateHome = Gate.getGateHome();
 				Gate.setUserConfigFile(new File(gateHome, "user-gate.xml"));
-				
+
 				path = path + "/plugins";
 				Gate.setPluginsHome(new File(path));
-				
+
 				Gate.init();
 				path = path + "/ANNIE";
-				Gate.getCreoleRegister()
-						.registerDirectories(new File(path).toURI().toURL());
+				Gate.getCreoleRegister().registerDirectories(new File(path).toURI().toURL());
 				logger.info("Gate initialised");
 
 				// initialise ANNIE (this may take several minutes)
 				logger.info("Initialising Annie");
 				this.initAnnie();
 				logger.info("Annie initialised");
-				
+
 				gateInitiated = true;
 			} catch (GateException | IOException e) {
 				throw new NLPEngineRuntimeException();
@@ -190,6 +198,7 @@ public class Chronicle implements Vitae {
 	public JSONObject processJournal(File enrichedContent) {
 		// create a corpus and add document to it
 		Corpus corpus = null;
+		JSONObject requiredObject = null;
 		try {
 			corpus = Factory.newCorpus("Annie corpus");
 
@@ -208,12 +217,21 @@ public class Chronicle implements Vitae {
 			annieController.execute();
 			logger.info("Annie's run complete");
 
+			logger.info("Begin to parse");
+			requiredObject = spliceMetadata(corpus);
+
 		} catch (ResourceInstantiationException | ExecutionException | MalformedURLException e) {
 			throw new JournalRuntimeException();
+		} finally {
+			// clear residual file
+			File tika = null;
+			tika = new File(PropertyAccessor.CONNECTION.getProperties().getProperty("nlp.tmp.path"), OUTPUT_FILE_NAME);
+			if (tika != null && tika.exists()) {
+				tika.delete();
+			}
 		}
 
-		logger.info("Begin to parse");
-		return spliceMetadata(corpus);
+		return requiredObject;
 
 	}
 
