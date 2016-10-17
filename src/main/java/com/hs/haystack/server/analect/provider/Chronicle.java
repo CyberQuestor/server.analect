@@ -99,12 +99,12 @@ public class Chronicle implements Vitae {
 			htmlFileWriter.close();
 			return toProcess;
 		} catch (IOException | SAXException | TikaException e) {
-			throw new ContentEnrichmentRuntimeException();
+			throw new ContentEnrichmentRuntimeException(e);
 		} finally {
 			try {
 				stream.close();
 			} catch (IOException e) {
-				throw new ContentEnrichmentRuntimeException();
+				throw new ContentEnrichmentRuntimeException(e);
 			}
 		}
 	}
