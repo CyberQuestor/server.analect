@@ -5,8 +5,6 @@ package com.hs.haystack.server.analect.interact;
 
 import java.io.File;
 
-import org.json.simple.JSONObject;
-
 import com.hs.haystack.models.common.file.FileProperties;
 
 /**
@@ -33,6 +31,6 @@ public interface Vitae {
 	 * @param enrichedContent is the information to be processed
 	 * @return the interpreted information from journal
 	 */
-	public JSONObject processJournal(File enrichedContent);
+	public Object processJournal(File enrichedContent);
 
 }

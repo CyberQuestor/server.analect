@@ -11,28 +11,37 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.sax.ToXMLContentHandler;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
+import com.hs.haystack.models.common.error.HaystackRuntimeException;
 import com.hs.haystack.models.common.error.runtime.analect.ContentEnrichmentRuntimeException;
 import com.hs.haystack.models.common.error.runtime.analect.JournalRuntimeException;
 import com.hs.haystack.models.common.error.runtime.analect.NLPEngineRuntimeException;
 import com.hs.haystack.models.common.file.FileProperties;
+import com.hs.haystack.models.common.profile.Address;
+import com.hs.haystack.models.common.profile.AddressType;
+import com.hs.haystack.models.common.profile.Company;
+import com.hs.haystack.models.common.profile.Phone;
+import com.hs.haystack.models.common.profile.PhoneType;
+import com.hs.haystack.models.common.profile.Qualification;
+import com.hs.haystack.models.common.profile.SkillSet;
+import com.hs.haystack.models.common.profile.UserProfile;
 import com.hs.haystack.server.analect.interact.Vitae;
 import com.hs.haystack.utilities.fabricator.LogFabricator;
+import com.hs.haystack.utilities.interpreter.repose.Genus;
 import com.hs.haystack.utilities.interpreter.repose.PropertyAccessor;
 
 import gate.Annotation;
@@ -100,11 +109,15 @@ public class Chronicle implements Vitae {
 			return toProcess;
 		} catch (IOException | SAXException | TikaException e) {
 			throw new ContentEnrichmentRuntimeException(e);
+		} catch (Exception e) {
+			throw new HaystackRuntimeException(e);
 		} finally {
 			try {
 				stream.close();
 			} catch (IOException e) {
 				throw new ContentEnrichmentRuntimeException(e);
+			} catch (Exception e) {
+				throw new HaystackRuntimeException(e);
 			}
 		}
 	}
@@ -117,31 +130,16 @@ public class Chronicle implements Vitae {
 	 */
 	private InputStream getFileStream(FileProperties fileProperties) {
 		InputStream requiredProperties = null;
-
-		if (fileProperties.getFile().hasArray()) {
-			// use heap buffer; no array is created; only the reference is used
-			requiredProperties = new ByteArrayInputStream(fileProperties.getFile().array());
+		try {
+			if (fileProperties.getFile().hasArray()) {
+				// use heap buffer; no array is created; only the reference is
+				// used
+				requiredProperties = new ByteArrayInputStream(fileProperties.getFile().array());
+			}
+		} catch (Exception e) {
+			throw new HaystackRuntimeException(e);
 		}
 		return requiredProperties;
-	}
-
-	/**
-	 * Aid in retrieving resource located in stated path
-	 * 
-	 * @param path
-	 *            is the provided location
-	 * @return the file or folder set required
-	 */
-	public File getFileFromURL(String path) {
-		URL url = this.getClass().getClassLoader().getResource(path);
-		File file = null;
-		try {
-			file = new File(url.toURI());
-		} catch (URISyntaxException e) {
-			file = new File(url.getPath());
-		} finally {
-			return file;
-		}
 	}
 
 	/**
@@ -190,15 +188,17 @@ public class Chronicle implements Vitae {
 				gateInitiated = true;
 			} catch (GateException | IOException e) {
 				throw new NLPEngineRuntimeException();
+			} catch (Exception e) {
+				throw new HaystackRuntimeException(e);
 			}
 		}
 	}
 
 	@Override
-	public JSONObject processJournal(File enrichedContent) {
+	public Object processJournal(File enrichedContent) {
 		// create a corpus and add document to it
 		Corpus corpus = null;
-		JSONObject requiredObject = null;
+		Object requiredObject = null;
 		try {
 			corpus = Factory.newCorpus("Annie corpus");
 
@@ -222,6 +222,8 @@ public class Chronicle implements Vitae {
 
 		} catch (ResourceInstantiationException | ExecutionException | MalformedURLException e) {
 			throw new JournalRuntimeException();
+		} catch (Exception e) {
+			throw new HaystackRuntimeException(e);
 		} finally {
 			// clear residual file
 			File tika = null;
@@ -242,21 +244,20 @@ public class Chronicle implements Vitae {
 	 *            is the data set to be processed
 	 * @return the interpreted data set
 	 */
-	private JSONObject spliceMetadata(Corpus corpus) {
+	private Object spliceMetadata(Corpus corpus) {
 		if (corpus == null) {
 			return null;
 		}
-		Iterator iter = corpus.iterator();
-		JSONObject parsedJSON = new JSONObject();
+		Iterator<Document> iter = corpus.iterator();
+		UserProfile parsedProfile = new UserProfile();
 		logger.info("Start to parse");
 		if (iter.hasNext()) { // repeat this if there is more than one document
-			JSONObject profileJSON = new JSONObject();
 			// change to user profile object
 			Document doc = (Document) iter.next();
 			AnnotationSet defaultAnnotSet = doc.getAnnotations();
 
 			AnnotationSet curAnnSet;
-			Iterator it;
+			Iterator<Annotation> it;
 			Annotation currAnnot;
 
 			// get name
@@ -265,21 +266,30 @@ public class Chronicle implements Vitae {
 													// allowed
 				currAnnot = (Annotation) curAnnSet.iterator().next();
 				String gender = (String) currAnnot.getFeatures().get("gender");
-				if (gender != null && gender.length() > 0) {
-					profileJSON.put("gender", gender);
+				if (!Genus.analyzeNullString(gender)) {
+					parsedProfile.setGender(gender);
 				}
 
 				// required name parts
-				JSONObject nameJson = new JSONObject();
 				String[] nameFeatures = new String[] { "firstName", "middleName", "surname" };
 
 				for (String feature : nameFeatures) {
 					String s = (String) currAnnot.getFeatures().get(feature);
-					if (s != null && s.length() > 0) {
-						nameJson.put(feature, s);
+					if (!Genus.analyzeNullString(s)) {
+						switch (feature) {
+						case "firstName":
+							parsedProfile.setFirstName(s);
+							break;
+						case "middleName":
+							parsedProfile.setMiddleName(s);
+							break;
+						case "surname":
+							parsedProfile.setLastName(s);
+							break;
+
+						}
 					}
 				}
-				profileJSON.put("name", nameJson);
 			} // name
 
 			// title
@@ -288,98 +298,172 @@ public class Chronicle implements Vitae {
 													// allowed
 				currAnnot = (Annotation) curAnnSet.iterator().next();
 				String title = stringFor(doc, currAnnot);
-				if (title != null && title.length() > 0) {
-					profileJSON.put("title", title);
+				if (!Genus.analyzeNullString(title)) {
+					parsedProfile.setCurrentJobTitle(title);
 				}
 			} // title
 
-			// email,address,phone,url
-			String[] annSections = new String[] { "EmailFinder", "AddressFinder", "PhoneFinder", "URLFinder" };
-			String[] annKeys = new String[] { "email", "address", "phone", "url" };
-			for (short i = 0; i < annSections.length; i++) {
-				String annSection = annSections[i];
-				curAnnSet = defaultAnnotSet.get(annSection);
-				it = curAnnSet.iterator();
-				JSONArray sectionArray = new JSONArray();
-				while (it.hasNext()) { // process all available values for these
-					currAnnot = (Annotation) it.next();
-					String s = stringFor(doc, currAnnot);
-					if (s != null && s.length() > 0) {
-						sectionArray.add(s);
-					}
+			// email
+			curAnnSet = defaultAnnotSet.get("EmailFinder");
+			it = curAnnSet.iterator();
+			// email section - find all possible
+			while (it.hasNext()) {
+				currAnnot = (Annotation) it.next();
+				String s = stringFor(doc, currAnnot);
+				if (!Genus.analyzeNullString(s)) {
+					parsedProfile.setPrimaryEmail(s);
+					break;
 				}
-				if (sectionArray.size() > 0) {
-					profileJSON.put(annKeys[i], sectionArray);
-				}
-			}
-			if (!profileJSON.isEmpty()) {
-				parsedJSON.put("basics", profileJSON);
-			}
+			} // email done
 
-			// awards,credibility,education_and_training,extracurricular,misc,skills,summary
-			String[] otherSections = new String[] { "summary", "education_and_training", "skills", "accomplishments",
-					"awards", "credibility", "extracurricular", "misc" };
-			for (String otherSection : otherSections) {
-				curAnnSet = defaultAnnotSet.get(otherSection);
-				it = curAnnSet.iterator();
-				JSONArray subSections = new JSONArray();
-				while (it.hasNext()) {
-					JSONObject subSection = new JSONObject();
-					currAnnot = (Annotation) it.next();
-					String key = (String) currAnnot.getFeatures().get("sectionHeading");
-					String value = stringFor(doc, currAnnot);
-					if (!StringUtils.isBlank(key) && !StringUtils.isBlank(value)) {
-						subSection.put(key, value);
-					}
-					if (!subSection.isEmpty()) {
-						subSections.add(subSection);
-					}
+			// address
+			curAnnSet = defaultAnnotSet.get("AddressFinder");
+			it = curAnnSet.iterator();
+			// address section - find all possible
+			List<Address> foundAddresses = new ArrayList<Address>();
+			Address localAddress = null;
+			while (it.hasNext()) {
+				currAnnot = (Annotation) it.next();
+				String s = stringFor(doc, currAnnot);
+				if (!Genus.analyzeNullString(s)) {
+					localAddress = new Address();
+					localAddress.setAdressType(AddressType.Current);
+					localAddress.setStreet(s);
+					foundAddresses.add(localAddress);
 				}
-				if (!subSections.isEmpty()) {
-					parsedJSON.put(otherSection, subSections);
+				parsedProfile.setAvailableAddresses(foundAddresses);
+			} // address done
+
+			// address
+			curAnnSet = defaultAnnotSet.get("PhoneFinder");
+			it = curAnnSet.iterator();
+			// address section - find all possible
+			List<Phone> foundPhones = new ArrayList<Phone>();
+			Phone localPhone = null;
+			while (it.hasNext()) {
+				currAnnot = (Annotation) it.next();
+				String s = stringFor(doc, currAnnot);
+				if (!Genus.analyzeNullString(s)) {
+					localPhone = new Phone();
+					localPhone.setType(PhoneType.Mobile);
+					localPhone.setNumber(s);
+					foundPhones.add(localPhone);
+				}
+				parsedProfile.setAvailablePhones(foundPhones);
+			} // address done
+
+			// do it for skills now
+			curAnnSet = defaultAnnotSet.get("skills");
+			it = curAnnSet.iterator();
+			List<SkillSet> foundSkills = new ArrayList<SkillSet>();
+			SkillSet localSkill = null;
+			while (it.hasNext()) {
+				currAnnot = (Annotation) it.next();
+				String value = stringFor(doc, currAnnot);
+				String[] values = value.split("[,\\s]\\s*");
+				for (String localValue : values) {
+					if (!Genus.analyzeNullString(value)) {
+						// TODO - build in split and loop routine - check with
+						// solr
+						localSkill = new SkillSet();
+						localSkill.setName(localValue);
+						foundSkills.add(localSkill);
+					}
 				}
 			}
+			parsedProfile.setAvailableSkills(foundSkills);
+			// skills done
 
-			// work_experience
+			// do it for qualification now
+			curAnnSet = defaultAnnotSet.get("education_and_training");
+			it = curAnnSet.iterator();
+			List<Qualification> foundQualifications = new ArrayList<Qualification>();
+			Qualification localQualification = null;
+			while (it.hasNext()) {
+				currAnnot = (Annotation) it.next();
+				String value = stringFor(doc, currAnnot);
+				if (!Genus.analyzeNullString(value)) {
+					// TODO - build in split and loop routine
+					localQualification = new Qualification();
+					localQualification.setName(value);
+					foundQualifications.add(localQualification);
+				}
+			}
+			// set at next section
+			// qualification done
+
+			// do it for qualification again
+			curAnnSet = defaultAnnotSet.get("accomplishments");
+			it = curAnnSet.iterator();
+			while (it.hasNext()) {
+				currAnnot = (Annotation) it.next();
+				String value = stringFor(doc, currAnnot);
+				if (!Genus.analyzeNullString(value)) {
+					// TODO - build in split and loop routine
+					localQualification = new Qualification();
+					localQualification.setName(value);
+					foundQualifications.add(localQualification);
+				}
+			}
+			parsedProfile.setAvailableQualifications(foundQualifications);
+			// qualification done
+
+			// do it for work experience now
 			curAnnSet = defaultAnnotSet.get("work_experience");
 			it = curAnnSet.iterator();
-			JSONArray workExperiences = new JSONArray();
+			List<Company> foundCompanies = new ArrayList<Company>();
+			Company localCompany = null;
 			while (it.hasNext()) {
-				JSONObject workExperience = new JSONObject();
 				currAnnot = (Annotation) it.next();
 				String key = (String) currAnnot.getFeatures().get("sectionHeading");
+				localCompany = new Company();
 				if (key.equals("work_experience_marker")) {
-					// JSONObject details = new JSONObject();
-					String[] annotations = new String[] { "date_start", "date_end", "jobtitle", "organization" };
-					for (String annotation : annotations) {
-						String v = (String) currAnnot.getFeatures().get(annotation);
-						if (!StringUtils.isBlank(v)) {
-							// details.put(annotation, v);
-							workExperience.put(annotation, v);
+					// get attributes
+					String dateStart = (String) currAnnot.getFeatures().get("date_start");
+					String dateEnd = (String) currAnnot.getFeatures().get("date_end");
+					String jobTitle = (String) currAnnot.getFeatures().get("jobtitle");
+					String organization = (String) currAnnot.getFeatures().get("organization");
+
+					if (!Genus.analyzeNullString(dateEnd)) {
+						// end date set
+						Date endDate = Genus.attemptDateParse(dateEnd);
+						if (endDate != null) {
+							localCompany.setEndDate(endDate);
 						}
+
+						localCompany.setDivision("endDate:" + dateEnd);
 					}
-					// if (!details.isEmpty()) {
-					// workExperience.put("work_details", details);
-					// }
-					key = "text";
-
+					if (!Genus.analyzeNullString(dateStart)) {
+						// start date set
+						Date startDate = Genus.attemptDateParse(dateStart);
+						if (startDate != null) {
+							localCompany.setStartDate(startDate);
+						}
+						localCompany.setDivision(localCompany.getDivision().concat("\nstartDate:" + dateStart));
+					}
+					if (!Genus.analyzeNullString(jobTitle)) {
+						// title set
+						localCompany.setTitle(jobTitle);
+					}
+					if (!Genus.analyzeNullString(organization)) {
+						// organization set
+						localCompany.setName(organization);
+					}
 				}
+
 				String value = stringFor(doc, currAnnot);
-				if (!StringUtils.isBlank(key) && !StringUtils.isBlank(value)) {
-					workExperience.put(key, value);
-				}
-				if (!workExperience.isEmpty()) {
-					workExperiences.add(workExperience);
+				if (!Genus.analyzeNullString(value)) {
+					localCompany.setDepartment(value);
 				}
 
+				foundCompanies.add(localCompany);
 			}
-			if (!workExperiences.isEmpty()) {
-				parsedJSON.put("work_experience", workExperiences);
-			}
+			parsedProfile.setAvailableCompanies(foundCompanies);
+			// done with work experience
 
 		}
 		logger.info("Finish parsing");
-		return parsedJSON;
+		return parsedProfile;
 	}
 
 }
