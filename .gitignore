@@ -6,3 +6,5 @@ target/*
 /logs/*
 /archive/*
 /${sys:log.path}/*
+/bin/
+.classpath
