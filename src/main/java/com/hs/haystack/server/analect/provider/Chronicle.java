@@ -328,7 +328,7 @@ public class Chronicle implements Vitae {
 				if (!Genus.analyzeNullString(s)) {
 					localAddress = new Address();
 					localAddress.setAdressType(AddressType.Current);
-					localAddress.setStreet(s);
+					localAddress.setAddressLine1(s);
 					foundAddresses.add(localAddress);
 				}
 				parsedProfile.setAvailableAddresses(foundAddresses);
