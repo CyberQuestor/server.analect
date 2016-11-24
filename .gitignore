@@ -8,3 +8,4 @@ target/*
 /${sys:log.path}/*
 /bin/
 .classpath
+/bin/

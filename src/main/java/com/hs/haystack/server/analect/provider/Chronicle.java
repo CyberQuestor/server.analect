@@ -108,16 +108,16 @@ public class Chronicle implements Vitae {
 			htmlFileWriter.close();
 			return toProcess;
 		} catch (IOException | SAXException | TikaException e) {
-			throw new ContentEnrichmentRuntimeException(e);
+			throw new ContentEnrichmentRuntimeException(e, recordToProcess);
 		} catch (Exception e) {
-			throw new HaystackRuntimeException(e);
+			throw new HaystackRuntimeException(e, recordToProcess);
 		} finally {
 			try {
 				stream.close();
 			} catch (IOException e) {
-				throw new ContentEnrichmentRuntimeException(e);
+				throw new ContentEnrichmentRuntimeException(e, recordToProcess);
 			} catch (Exception e) {
-				throw new HaystackRuntimeException(e);
+				throw new HaystackRuntimeException(e, recordToProcess);
 			}
 		}
 	}
@@ -137,7 +137,7 @@ public class Chronicle implements Vitae {
 				requiredProperties = new ByteArrayInputStream(fileProperties.getFile().array());
 			}
 		} catch (Exception e) {
-			throw new HaystackRuntimeException(e);
+			throw new HaystackRuntimeException(e, fileProperties);
 		}
 		return requiredProperties;
 	}
@@ -187,9 +187,9 @@ public class Chronicle implements Vitae {
 
 				gateInitiated = true;
 			} catch (GateException | IOException e) {
-				throw new NLPEngineRuntimeException();
+				throw new NLPEngineRuntimeException(e, path);
 			} catch (Exception e) {
-				throw new HaystackRuntimeException(e);
+				throw new HaystackRuntimeException(e, path);
 			}
 		}
 	}
@@ -221,9 +221,9 @@ public class Chronicle implements Vitae {
 			requiredObject = spliceMetadata(corpus);
 
 		} catch (ResourceInstantiationException | ExecutionException | MalformedURLException e) {
-			throw new JournalRuntimeException();
+			throw new JournalRuntimeException(e, enrichedContent);
 		} catch (Exception e) {
-			throw new HaystackRuntimeException(e);
+			throw new HaystackRuntimeException(e, enrichedContent);
 		} finally {
 			// clear residual file
 			File tika = null;
@@ -328,7 +328,7 @@ public class Chronicle implements Vitae {
 				if (!Genus.analyzeNullString(s)) {
 					localAddress = new Address();
 					localAddress.setAdressType(AddressType.Current);
-					localAddress.setStreet(s);
+					localAddress.setAddressLine1(s);
 					foundAddresses.add(localAddress);
 				}
 				parsedProfile.setAvailableAddresses(foundAddresses);
