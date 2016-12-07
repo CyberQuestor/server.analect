@@ -18,12 +18,10 @@
   	<dependency>
   		<groupId>org.apache.tika</groupId>
   		<artifactId>tika-core</artifactId>
-  		<version>1.13</version>
   	</dependency>
   	<dependency>
   		<groupId>org.apache.tika</groupId>
   		<artifactId>tika-parsers</artifactId>
-  		<version>1.13</version>
   		<exclusions>
   			<exclusion>
   				<artifactId>cxf-rt-rs-client</artifactId>
@@ -34,12 +32,10 @@
   	<dependency>
   		<groupId>com.hs.haystack</groupId>
   		<artifactId>server.model</artifactId>
-  		<version>${haystack.version}</version>
-  	</dependency>
+  		</dependency>
   	<dependency>
   		<groupId>com.hs.haystack</groupId>
   		<artifactId>server.utilities</artifactId>
-  		<version>${haystack.version}</version>
-  	</dependency>
+  		</dependency>
   </dependencies>
 </project>
