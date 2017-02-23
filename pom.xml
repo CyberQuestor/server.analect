@@ -3,7 +3,7 @@
   <parent>
     <groupId>com.hs.haystack</groupId>
     <artifactId>haystack.service.layer</artifactId>
-    <version>1.0.0.1</version>
+    <version>1.0.0.2</version>
     <relativePath>../haystack.service.layer</relativePath>
   </parent>
   <artifactId>server.analect</artifactId>
