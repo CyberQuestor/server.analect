@@ -8,5 +8,5 @@ target/*
 /${sys:log.path}/*
 /bin/
 .classpath
-/bin/
-/bin/
+/src/main/resources/*
+
