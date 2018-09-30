@@ -30,7 +30,7 @@ import com.hs.haystack.models.common.error.HaystackRuntimeException;
 import com.hs.haystack.models.common.error.runtime.analect.ContentEnrichmentRuntimeException;
 import com.hs.haystack.models.common.error.runtime.analect.JournalRuntimeException;
 import com.hs.haystack.models.common.error.runtime.analect.NLPEngineRuntimeException;
-import com.hs.haystack.models.common.file.FileProperties;
+import com.hs.haystack.models.common.file.Implant;
 import com.hs.haystack.models.common.profile.Address;
 import com.hs.haystack.models.common.profile.AddressType;
 import com.hs.haystack.models.common.profile.Company;
@@ -70,7 +70,7 @@ public class Chronicle implements Vitae {
 	private String OUTPUT_FILE_NAME;
 
 	@Override
-	public File extractEnrichedContent(FileProperties recordToProcess) {
+	public File extractEnrichedContent(Implant recordToProcess) {
 		// determine extension
 		String ext = FilenameUtils.getExtension(recordToProcess.getFileName());
 		String outputFileFormat = "";
@@ -128,7 +128,7 @@ public class Chronicle implements Vitae {
 	 * @param fileProperties
 	 * @return
 	 */
-	private InputStream getFileStream(FileProperties fileProperties) {
+	private InputStream getFileStream(Implant fileProperties) {
 		InputStream requiredProperties = null;
 		try {
 			if (fileProperties.getFile().hasArray()) {

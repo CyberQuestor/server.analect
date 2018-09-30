@@ -5,7 +5,7 @@ package com.hs.haystack.server.analect.interact;
 
 import java.io.File;
 
-import com.hs.haystack.models.common.file.FileProperties;
+import com.hs.haystack.models.common.file.Implant;
 
 /**
  * @author vinay
@@ -18,7 +18,7 @@ public interface Vitae {
 	 * @param recordToProcess is the desired document set
 	 * @return the potable file to be analysed
 	 */
-	public File extractEnrichedContent(FileProperties recordToProcess);
+	public File extractEnrichedContent(Implant recordToProcess);
 	
 	/**
 	 * Help instantiate natural language processing engine
